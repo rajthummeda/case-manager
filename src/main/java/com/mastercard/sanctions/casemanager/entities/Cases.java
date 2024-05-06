@@ -56,6 +56,9 @@ public class Cases {
     @Column(name = "closure_rsn")
     private String closureReason;
     
+    @Column(name = "assign_to")
+    private String assignedTo;
+    
     @Column(name = "close_dt")
     @Temporal(TemporalType.DATE)
     private Date closingDate;
