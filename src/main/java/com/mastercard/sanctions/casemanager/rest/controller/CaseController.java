@@ -8,7 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.mastercard.sanctions.casemanager.dto.CaseDto;
+import com.mastercard.sanctions.casemanager.dto.CaseDetailsDto;
+import com.mastercard.sanctions.casemanager.dto.SaveCaseDto;
 import com.mastercard.sanctions.casemanager.service.CaseService;
 
 @RestController
@@ -19,14 +20,14 @@ public class CaseController {
     private CaseService casesService;
 
     @PostMapping("/save")
-    public ResponseEntity<Map<String, Object>> createCase(@RequestBody CaseDto caseDto) {
+    public ResponseEntity<Map<String, Object>> createCase(@RequestBody SaveCaseDto caseDto) {
         Map<String, Object> response = casesService.createCase(caseDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @GetMapping("/{type}")
-    public ResponseEntity<List<CaseDto>> getCasesByType(@PathVariable("type") String type) {
-        List<CaseDto> casesList = casesService.getCasesByType(type);
+    public ResponseEntity<List<CaseDetailsDto>> getCasesByType(@PathVariable("type") String type) {
+        List<CaseDetailsDto> casesList = casesService.getCasesByType(type);
         return ResponseEntity.ok(casesList);
     }
 }

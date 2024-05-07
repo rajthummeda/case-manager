@@ -18,6 +18,6 @@ public class CaseType {
     @Column(name = "case_type_id")
     private Long caseTypeId;
 
-    @Column(name = "type_name")
+    @Column(name = "type_name", unique = true)
     private String type;
 }

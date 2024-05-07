@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
@@ -26,7 +27,7 @@ public class CaseTypeDetails {
     @Column(name = "id")
     private Long id;
 	
-	@OneToOne(fetch = FetchType.LAZY)
+	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "case_type_id")
     private CaseType caseType;
 
@@ -54,7 +55,7 @@ public class CaseTypeDetails {
     private Date dueDate;
 
     @Column(name = "customer_cid")
-    private String customerId;
+    private String customerCId;
 
     @Column(name = "customer_name")
     private String customerName;

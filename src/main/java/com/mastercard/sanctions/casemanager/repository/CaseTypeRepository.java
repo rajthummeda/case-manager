@@ -6,4 +6,6 @@ import com.mastercard.sanctions.casemanager.entities.CaseType;
 
 public interface CaseTypeRepository extends JpaRepository<CaseType, Long> {
 
+	CaseType findByTypeIgnoreCase(String caseType);
+
 }

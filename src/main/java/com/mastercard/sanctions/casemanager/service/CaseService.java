@@ -10,11 +10,17 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.mastercard.sanctions.casemanager.dto.CaseDto;
+import com.mastercard.sanctions.casemanager.dto.CaseDetailsDto;
+import com.mastercard.sanctions.casemanager.dto.CaseTypeDetailsDto;
 import com.mastercard.sanctions.casemanager.dto.CaseTypeDto;
+import com.mastercard.sanctions.casemanager.dto.CaseTypeEnum;
+import com.mastercard.sanctions.casemanager.dto.SaveCaseDto;
 import com.mastercard.sanctions.casemanager.entities.CaseType;
+import com.mastercard.sanctions.casemanager.entities.CaseTypeDetails;
 import com.mastercard.sanctions.casemanager.entities.Cases;
+import com.mastercard.sanctions.casemanager.entities.Type;
 import com.mastercard.sanctions.casemanager.repository.CaseRepository;
+import com.mastercard.sanctions.casemanager.repository.CaseTypeDetailsRepository;
 import com.mastercard.sanctions.casemanager.repository.CaseTypeRepository;
 
 @Service
@@ -25,64 +31,107 @@ public class CaseService {
 
 	@Autowired
 	private CaseTypeRepository caseTypeRepository;
+	
+	@Autowired
+	private CaseTypeDetailsRepository caseTypeDetailsRepo;
 
-	public Map<String, Object> createCase(CaseDto caseDto) {
-		
+	public Map<String, Object> createCase(SaveCaseDto caseDto) {
 		Map<String, Object> response = new HashMap<>();
-		
-        // Create CaseType entity
-        CaseTypeDto caseTypeDto = caseDto.getCaseType();
-        CaseType caseType = new CaseType();
-        BeanUtils.copyProperties(caseTypeDto, caseType);
-        caseTypeRepository.save(caseType);
+		Cases savedCase = null;
+		if (Type.REGULAR.name().equalsIgnoreCase(caseDto.getCaseData().getTypeOfCase())) {
+			savedCase = saveRegularCase(caseDto);
+		} else if (Type.ADHOC.name().equalsIgnoreCase(caseDto.getCaseData().getTypeOfCase())) {
+			savedCase = saveAdhocCase(caseDto);
+		} else {
+			throw new IllegalArgumentException("Invalid case type: " + caseDto.getCaseData().getTypeOfCase());
+		}
+		response.put("message", "Case created successfully of type : " + savedCase.getTypeOfCase());
+		response.put("caseId", savedCase.getCaseId());
+		return response;
+	}
 
-        // Create Cases entity
+	
+	private Cases saveRegularCase(SaveCaseDto caseDto) {
+		String caseTypeData = caseDto.getCaseData().getCaseType();
+		CaseType caseType = getCaseTypeIfExists(caseTypeData);
+		 // Create Cases entity
         Cases cases = new Cases();
-        BeanUtils.copyProperties(caseDto, cases);
+        BeanUtils.copyProperties(caseDto.getCaseData(), cases);
         cases.setCaseType(caseType);
-        Cases savedCase = casesRepository.save(cases);
+        return casesRepository.save(cases); // save case
+	}
+	
+	private Cases saveAdhocCase(SaveCaseDto caseDto) {
+		
+		String caseTypeData = caseDto.getCaseData().getCaseType();
+		CaseType caseType = getCaseTypeIfExists(caseTypeData);
+		 // Create Cases entity
+        Cases cases = new Cases();
+        BeanUtils.copyProperties(caseDto.getCaseData(), cases);
+        cases.setCaseType(caseType);
+        
+        // Create CaseTypeDetails entity
+ 		CaseTypeDetails caseTypeDetails = new CaseTypeDetails();
+ 		CaseTypeDetailsDto caseDetailsDto = caseDto.getCaseData().getCaseTypeData();
+ 		BeanUtils.copyProperties(caseDetailsDto, caseTypeDetails);
+ 		
+	    if(caseTypeData == CaseTypeEnum.INTERNAL_INQUIRY.getType()) {
+	    	caseTypeDetails.setBusinessLine(caseDetailsDto.getBusinessLine());
+	    } else if(caseTypeData == CaseTypeEnum.CUSTOMER_INQUIRY.getType()) {
+	    	caseTypeDetails.setCustomerName(caseDetailsDto.getCustomerName());
+	    	caseTypeDetails.setCustomerCId(caseDetailsDto.getCustomerCId());
+	    } else if(caseTypeData == CaseTypeEnum.PRODUCT_REVIEW.getType()) {
+	    	caseTypeDetails.setProductName(caseDetailsDto.getProductName());
+	    } else if(caseTypeData == CaseTypeEnum.GOVERNMENT_REGULATOR.getType() ||
+	    		caseTypeData == CaseTypeEnum.LAW_ENFORCEMENT.getType()) {
+	    	caseTypeDetails.setAgencyName(caseDetailsDto.getAgencyName());
+	    }
+	    caseTypeDetails.setCaseType(caseType);
+	    caseTypeDetailsRepo.save(caseTypeDetails); // save case type details
+		return casesRepository.save(cases); // save case
+	}
 
-        response.put("message", "Case created successfully of type : " + savedCase.getTypeOfCase());
-        response.put("caseId", savedCase.getCaseId());
-        return response;
-    }
-
-    public CaseDto getCaseById(String caseId) {
-        Optional<Cases> optionalCases = casesRepository.findById(caseId);
-        if (optionalCases.isPresent()) {
-            Cases cases = optionalCases.get();
-            CaseDto caseDto = new CaseDto();
-            BeanUtils.copyProperties(cases, caseDto);
-            // Set CaseTypeDto
-            CaseTypeDto caseTypeDto = new CaseTypeDto();
-            BeanUtils.copyProperties(cases.getCaseType(), caseTypeDto);
-            caseDto.setCaseType(caseTypeDto);
-            return caseDto;
+	private CaseType getCaseTypeIfExists(String caseType) {
+        // Check if the case type exists in the database
+        CaseType caseTypeEntity = caseTypeRepository.findByTypeIgnoreCase(caseType);
+        if (caseTypeEntity == null) {
+            throw new IllegalArgumentException("Case type does not exist: " + caseType);
         }
-        return null;
-    }
-    
-    public List<CaseDto> getCasesByType(String type) {
-        List<Cases> casesList = casesRepository.findByTypeOfCase(type);
-        return casesList.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        return caseTypeEntity;
     }
 
-    public List<CaseDto> getAllCases() {
-        List<Cases> casesList = casesRepository.findAll();
-        return casesList.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
+	public CaseDetailsDto getCaseById(String caseId) {
+		Optional<Cases> optionalCases = casesRepository.findById(caseId);
+		if (optionalCases.isPresent()) {
+			Cases cases = optionalCases.get();
+			CaseDetailsDto caseDto = new CaseDetailsDto();
+			BeanUtils.copyProperties(cases, caseDto);
+			// Set CaseTypeDto
+			CaseTypeDto caseTypeDto = new CaseTypeDto();
+			BeanUtils.copyProperties(cases.getCaseType(), caseTypeDto);
+			caseDto.setCaseType(caseTypeDto.getType());
+			return caseDto;
+		}
+		return null;
+	}
 
-    private CaseDto convertToDto(Cases cases) {
-        CaseDto caseDto = new CaseDto();
-        BeanUtils.copyProperties(cases, caseDto);
-        // Set CaseTypeDto
-        CaseTypeDto caseTypeDto = new CaseTypeDto();
-        BeanUtils.copyProperties(cases.getCaseType(), caseTypeDto);
-        caseDto.setCaseType(caseTypeDto);
-        return caseDto;
-    }
+	public List<CaseDetailsDto> getCasesByType(String type) {
+		List<Cases> casesList = casesRepository.findByTypeOfCase(type);
+		return casesList.stream().map(this::convertToDto).collect(Collectors.toList());
+	}
+
+	public List<CaseDetailsDto> getAllCases() {
+		List<Cases> casesList = casesRepository.findAll();
+		return casesList.stream().map(this::convertToDto).collect(Collectors.toList());
+	}
+
+	private CaseDetailsDto convertToDto(Cases cases) {
+		CaseDetailsDto caseDto = new CaseDetailsDto();
+		BeanUtils.copyProperties(cases, caseDto);
+		// Set CaseTypeDto
+		CaseTypeDto caseTypeDto = new CaseTypeDto();
+		BeanUtils.copyProperties(cases.getCaseType(), caseTypeDto);
+		caseDto.setCaseType(caseTypeDto.getType());
+		return caseDto;
+	}
 }

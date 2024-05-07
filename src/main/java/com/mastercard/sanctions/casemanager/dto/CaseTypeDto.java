@@ -1,23 +1,16 @@
 package com.mastercard.sanctions.casemanager.dto;
 
-import java.util.Date;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class CaseTypeDto {
 
-	private String type;
-	private String topic;
-	private String businessLine;
-	private String description;
-	private String region;
-	private String country;
-	private String contactNameInfo;
-	private String actionTaken;
-	private Date dueDate;
-	private String customerId;
-	private String customerName;
-	private String productName;
-	private String agencyName;
+	private Long id;
+    private String type;
 }
