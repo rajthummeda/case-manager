@@ -5,6 +5,8 @@ import lombok.Data;
 @Data
 public class IssuerDto {
 
-	private String issuerName;
-	private String issuerICA;
+	private String issuerId;
+    private String issuerName;
+    private String issuerICA;
+    private String issuerCountryCode;
 }

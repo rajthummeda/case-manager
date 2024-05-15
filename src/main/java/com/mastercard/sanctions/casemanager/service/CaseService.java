@@ -10,7 +10,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.mastercard.sanctions.casemanager.dto.CaseDetailsDto;
 import com.mastercard.sanctions.casemanager.dto.CaseTypeDetailsDto;
 import com.mastercard.sanctions.casemanager.dto.CaseTypeDto;
 import com.mastercard.sanctions.casemanager.dto.CaseTypeEnum;
@@ -38,12 +37,12 @@ public class CaseService {
 	public Map<String, Object> createCase(SaveCaseDto caseDto) {
 		Map<String, Object> response = new HashMap<>();
 		Cases savedCase = null;
-		if (Type.REGULAR.name().equalsIgnoreCase(caseDto.getCaseData().getTypeOfCase())) {
+		if (Type.REGULAR.name().equalsIgnoreCase(caseDto.getTypeOfCase())) {
 			savedCase = saveRegularCase(caseDto);
-		} else if (Type.ADHOC.name().equalsIgnoreCase(caseDto.getCaseData().getTypeOfCase())) {
+		} else if (Type.ADHOC.name().equalsIgnoreCase(caseDto.getTypeOfCase())) {
 			savedCase = saveAdhocCase(caseDto);
 		} else {
-			throw new IllegalArgumentException("Invalid case type: " + caseDto.getCaseData().getTypeOfCase());
+			throw new IllegalArgumentException("Invalid case type: " + caseDto.getTypeOfCase());
 		}
 		response.put("message", "Case created successfully of type : " + savedCase.getTypeOfCase());
 		response.put("caseId", savedCase.getCaseId());
@@ -52,27 +51,27 @@ public class CaseService {
 
 	
 	private Cases saveRegularCase(SaveCaseDto caseDto) {
-		String caseTypeData = caseDto.getCaseData().getCaseType();
+		String caseTypeData = caseDto.getCaseType();
 		CaseType caseType = getCaseTypeIfExists(caseTypeData);
 		 // Create Cases entity
         Cases cases = new Cases();
-        BeanUtils.copyProperties(caseDto.getCaseData(), cases);
+        BeanUtils.copyProperties(caseDto, cases);
         cases.setCaseType(caseType);
         return casesRepository.save(cases); // save case
 	}
 	
 	private Cases saveAdhocCase(SaveCaseDto caseDto) {
 		
-		String caseTypeData = caseDto.getCaseData().getCaseType();
+		String caseTypeData = caseDto.getCaseType();
 		CaseType caseType = getCaseTypeIfExists(caseTypeData);
 		 // Create Cases entity
         Cases cases = new Cases();
-        BeanUtils.copyProperties(caseDto.getCaseData(), cases);
+        BeanUtils.copyProperties(caseDto, cases);
         cases.setCaseType(caseType);
         
         // Create CaseTypeDetails entity
  		CaseTypeDetails caseTypeDetails = new CaseTypeDetails();
- 		CaseTypeDetailsDto caseDetailsDto = caseDto.getCaseData().getCaseTypeData();
+ 		CaseTypeDetailsDto caseDetailsDto = caseDto.getCaseTypeData();
  		BeanUtils.copyProperties(caseDetailsDto, caseTypeDetails);
  		
 	    if(caseTypeData == CaseTypeEnum.INTERNAL_INQUIRY.getType()) {
@@ -100,11 +99,11 @@ public class CaseService {
         return caseTypeEntity;
     }
 
-	public CaseDetailsDto getCaseById(String caseId) {
+	public SaveCaseDto getCaseById(String caseId) {
 		Optional<Cases> optionalCases = casesRepository.findById(caseId);
 		if (optionalCases.isPresent()) {
 			Cases cases = optionalCases.get();
-			CaseDetailsDto caseDto = new CaseDetailsDto();
+			SaveCaseDto caseDto = new SaveCaseDto();
 			BeanUtils.copyProperties(cases, caseDto);
 			// Set CaseTypeDto
 			CaseTypeDto caseTypeDto = new CaseTypeDto();
@@ -115,18 +114,18 @@ public class CaseService {
 		return null;
 	}
 
-	public List<CaseDetailsDto> getCasesByType(String type) {
+	public List<SaveCaseDto> getCasesByType(String type) {
 		List<Cases> casesList = casesRepository.findByTypeOfCase(type);
 		return casesList.stream().map(this::convertToDto).collect(Collectors.toList());
 	}
 
-	public List<CaseDetailsDto> getAllCases() {
+	public List<SaveCaseDto> getAllCases() {
 		List<Cases> casesList = casesRepository.findAll();
 		return casesList.stream().map(this::convertToDto).collect(Collectors.toList());
 	}
 
-	private CaseDetailsDto convertToDto(Cases cases) {
-		CaseDetailsDto caseDto = new CaseDetailsDto();
+	private SaveCaseDto convertToDto(Cases cases) {
+		SaveCaseDto caseDto = new SaveCaseDto();
 		BeanUtils.copyProperties(cases, caseDto);
 		// Set CaseTypeDto
 		CaseTypeDto caseTypeDto = new CaseTypeDto();
